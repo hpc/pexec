@@ -1,0 +1,97 @@
+--- pexec.pl.patch3	2012-03-26 11:14:07.000000000 -0600
++++ pexec.pl	2012-03-26 11:58:58.990466663 -0600
+@@ -29,6 +29,8 @@
+    'bundling',				# allow bundling of options
+ );
+ 
++use Slurm qw(:constant); local $Slurm = Slurm::new();
++
+ use Sys::Hostname;
+ local $ThisMachine = hostname;
+ $ThisMachine =~ s/\..*//;
+@@ -890,6 +892,57 @@
+ 		  }
+ 	       }
+ 	    }
++	 } elsif ($name =~ /^all(up|respond)$/i) {
++	    my $nodes = &SlurmLoadNode || (push(@Machines,$name) , next M);
++	    foreach my $node_ref (@{$nodes->{node_array}}) {
++	       push(@Machines, $node_ref->{'name'})
++		  unless (IS_NODE_NO_RESPOND($node_ref));
++	    }
++	 } elsif ($name =~ /^allno(t)?(up|respond)$/i) {
++	    my $nodes = &SlurmLoadNode || (push(@Machines,$name) , next M);
++	    foreach my $node_ref (@{$nodes->{node_array}}) {
++	       push(@Machines, $node_ref->{'name'})
++		  if (IS_NODE_NO_RESPOND($node_ref));
++	    }
++	 } elsif ($name =~ /^allalloc(ated)?$/i) {
++	    my $nodes = &SlurmLoadNode || (push(@Machines,$name) , next M);
++	    foreach my $node_ref (@{$nodes->{node_array}}) {
++	       push(@Machines, $node_ref->{'name'})
++		  if (IS_NODE_ALLOCATED($node_ref));
++	    }
++	 } elsif ($name =~ /^allcomp(leting)?$/i) {
++	    my $nodes = &SlurmLoadNode || (push(@Machines,$name) , next M);
++	    foreach my $node_ref (@{$nodes->{node_array}}) {
++	       push(@Machines, $node_ref->{'name'})
++		  if (IS_NODE_COMPLETING($node_ref));
++	    }
++	 } elsif ($name =~ /^alldown$/i) {
++	    my $nodes = &SlurmLoadNode || (push(@Machines,$name) , next M);
++	    foreach my $node_ref (@{$nodes->{node_array}}) {
++	       push(@Machines, $node_ref->{'name'})
++		  if (IS_NODE_DOWN($node_ref)
++		   || IS_NODE_ERROR($node_ref)
++		   || IS_NODE_UNKNOWN($node_ref)
++		  );
++	    }
++	 } elsif ($name =~ /^allidle$/i) {
++	    my $nodes = &SlurmLoadNode || (push(@Machines,$name) , next M);
++	    foreach my $node_ref (@{$nodes->{node_array}}) {
++	       push(@Machines, $node_ref->{'name'})
++		  if (IS_NODE_IDLE($node_ref));
++	    }
++	 } elsif ($name =~ /^alldrain$/i) {
++	    my $nodes = &SlurmLoadNode || (push(@Machines,$name) , next M);
++	    foreach my $node_ref (@{$nodes->{node_array}}) {
++	       push(@Machines, $node_ref->{'name'})
++		  if (IS_NODE_DRAIN($node_ref));
++	    }
++	 } elsif ($name =~ /^alldrained$/i) {
++	    my $nodes = &SlurmLoadNode || (push(@Machines,$name) , next M);
++	    foreach my $node_ref (@{$nodes->{node_array}}) {
++	       push(@Machines, $node_ref->{'name'})
++		  if (IS_NODE_DRAINED($node_ref));
++	    }
+ 	 } else {					# a single host
+ 	    push(@Machines,$name) unless ($name =~ /^$/);
+ 	 }
+@@ -905,6 +958,15 @@
+    return @Unique;
+ }
+ 
++sub SlurmLoadNode {
++   my $aref = $Slurm->load_node();
++   unless (defined($aref)) {
++      printf STDERR "$prog: Slurm->load_node: %s\n", $Slurm->strerror();
++      return undef;
++   }
++   return $aref;
++}
++
+ sub tstp_signal_handler {
+    my $nal = $_[0];
+    ${ "SIG$nal" } = 1;
+@@ -1085,6 +1147,11 @@
+ 
+ Include I<host> in the machine list.  Valid names are: hosts, netgroups,
+ ranges, or a path to files containing these entities (newline separated).
++You may also use special keywords "I<allrespond>" (a.k.a "I<allup>"),
++"I<allnorespond>" (a.k.a. "I<allnotup>"), "I<alldown>", "I<allidle>",
++"I<allalloc>", "I<alldrain>", "I<alldrained>" and "I<allcomp>" in the machine
++specification and I<pexec> will contact the local I<slurmd> to populate the
++list with node names posessing such a characteristic.
+ Each I<host> specification may be inter-mixed however always comma
+ separated.  Netgroup names are invoked by using the "@" symbol, which acts
+ as an intersection operator.  A single netgroup can be designated with a

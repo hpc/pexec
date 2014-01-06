@@ -1,0 +1,13 @@
+# my file structure beginning at /usr
+
+/set type=dir uname=root gname=wheel mode=0755
+
+    bin
+    ..
+    share
+        man
+            man1
+            ..
+        ..
+    ..
+..

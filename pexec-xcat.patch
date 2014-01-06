@@ -1,0 +1,70 @@
+--- pexec.pl.patch0	2011-09-14 09:41:29.000000000 -0600
++++ pexec.pl	2011-09-14 09:59:30.487530227 -0600
+@@ -34,6 +34,7 @@
+ $ThisMachine =~ s/\..*//;
+ 
+ local $prompt = $ENV{'prompt'} || '# ';
++local $xcatroot = $ENV{'XCATROOT'} || '/opt/xcat';
+ 
+ unshift (@ARGV, split(/\s+/, $ENV{'PEXEC'})) if (exists $ENV{'PEXEC'});
+ 
+@@ -786,16 +787,21 @@
+    my @Machines = ();
+ 
+    foreach my $machines (@{ $aref }) {
+-      $machines =~ s/\s+//go;				# kill whitespace
+-
+-      while ($machines =~ /([^,\[]+)\[([\d,-]+)\]([^,]?)/) {
+-	 my $match  = $&;				# translate
+-	 my $prefix = $1;				#   p[1-10,13]s
+-	 my $suffix = $3;				# to
+-	(my $string = $2) =~ s/(\d+)/$prefix$1$suffix/g;#   p1s-p10s,p13s
+-	 $machines =~ s/\Q$match\E/$string/;		# for prefix 'p' and
+-      }							# suffix 's'
++      if (open(NR, "$xcatroot/bin/nodels $machines 2>/dev/null |")) {
++	 my @Range = ();
++	 foreach my $node (<NR>) {
++	    chomp $node;
++	    push(@Range, $node);
++	 }
++	 close NR;
++ 
++	 if (scalar @Range) {
++	    push(@Machines, @Range);
++	    next;
++	 }
++      }
+ 
++      $machines =~ s/\s+//go;				# kill whitespace
+ M:    foreach my $name (split(',',$machines)) {
+ 	 my @Dash = split('-', $name);
+ 	 if ($name =~ /^\@([^\@]+)$/) {			# a lone netgroup
+@@ -1076,6 +1082,7 @@
+ 
+ Include I<host> in the machine list.  Valid names are: hosts, netgroups,
+ ranges, or a path to files containing these entities (newline separated).
++You may also use any valid xCAT node range as an argument (see noderange(3)).
+ Each I<host> specification may be inter-mixed however always comma
+ separated.  Netgroup names are invoked by using the "@" symbol, which acts
+ as an intersection operator.  A single netgroup can be designated with a
+@@ -1327,6 +1334,11 @@
+ Take B<pexec> options from this environment variable, which is parsed
+ before the command line (and thereby overridden).
+ 
++=item B<XCATROOT>
++
++Use the directory specified by this environment variable as the xCAT root
++from which a noderange is calculated (default: /opt/xcat).
++
+ =back
+ 
+ =head1 FILES
+@@ -1371,7 +1383,7 @@
+ 
+ =head1 SEE ALSO
+ 
+-gethostbyname(3), netgroup(5), rsh(1), rcp(1),
++gethostbyname(3), netgroup(5), noderange(3), rsh(1), rcp(1),
+ rsync(1), ssh(1), scp(1)
+ 
+ =head1 AUTHOR
