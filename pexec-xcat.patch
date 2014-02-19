@@ -1,26 +1,28 @@
---- pexec.pl.patch0	2011-09-14 09:41:29.000000000 -0600
-+++ pexec.pl	2011-09-14 09:59:30.487530227 -0600
-@@ -34,6 +34,7 @@
+--- pexec.pl.patch0	2014-01-10 14:14:35.224454664 -0700
++++ pexec.pl	2014-01-10 14:22:02.661461383 -0700
+@@ -35,6 +35,7 @@
  $ThisMachine =~ s/\..*//;
  
- local $prompt = $ENV{'prompt'} || '# ';
-+local $xcatroot = $ENV{'XCATROOT'} || '/opt/xcat';
+ our $prompt = $ENV{'prompt'} || '# ';
++our $xcatroot = $ENV{'XCATROOT'} || '/opt/xcat';
  
  unshift (@ARGV, split(/\s+/, $ENV{'PEXEC'})) if (exists $ENV{'PEXEC'});
  
-@@ -786,16 +787,21 @@
-    my @Machines = ();
+@@ -694,20 +695,20 @@
+ 				# look-ahead assertion)
  
     foreach my $machines (@{ $aref }) {
 -      $machines =~ s/\s+//go;				# kill whitespace
 -
--      while ($machines =~ /([^,\[]+)\[([\d,-]+)\]([^,]?)/) {
--	 my $match  = $&;				# translate
--	 my $prefix = $1;				#   p[1-10,13]s
--	 my $suffix = $3;				# to
--	(my $string = $2) =~ s/(\d+)/$prefix$1$suffix/g;#   p1s-p10s,p13s
--	 $machines =~ s/\Q$match\E/$string/;		# for prefix 'p' and
--      }							# suffix 's'
+-      foreach my $name (split(/$comma/,$machines)) {
+-#                        prefix  [NR , digit] suffix
+-	 if ($name =~ /^([^\[]+)\[([\d,-]+)\]([^\[]*)$/) {
+-	    my $match  = $&;				# translate
+-	    my $prefix = $1;				#   p[1-10,13]s
+-	    my $suffix = $3;				# to
+-	   (my $string = $2) =~				#   p1s-p10s,p13s
+-	      s/(\d+)/$prefix$1$suffix/g;		# for prefix 'p' and
+-	    $machines =~ s/\Q$match\E/$string/;		# suffix 's'
 +      if (open(NR, "$xcatroot/bin/nodels $machines 2>/dev/null |")) {
 +	 my @Range = ();
 +	 foreach my $node (<NR>) {
@@ -28,26 +30,30 @@
 +	    push(@Range, $node);
 +	 }
 +	 close NR;
-+ 
 +	 if (scalar @Range) {
 +	    push(@Machines, @Range);
 +	    next;
-+	 }
-+      }
+ 	 }
+       }
  
 +      $machines =~ s/\s+//go;				# kill whitespace
- M:    foreach my $name (split(',',$machines)) {
+ M:    foreach my $name (split(/$comma/,$machines)) {
  	 my @Dash = split('-', $name);
  	 if ($name =~ /^\@([^\@]+)$/) {			# a lone netgroup
-@@ -1076,6 +1082,7 @@
+@@ -1072,11 +1073,7 @@
  
  Include I<host> in the machine list.  Valid names are: hosts, netgroups,
  ranges, or a path to files containing these entities (newline separated).
+-You may also use special keywords "I<allrespond>" (a.k.a "I<allup>"),
+-"I<allnorespond>" (a.k.a. "I<allnotup>"), "I<alldown>", "I<allidle>",
+-"I<allalloc>", "I<alldrain>", "I<alldrained>" and "I<allcomp>" in the machine
+-specification and B<pexec> will contact the local I<slurmd> to populate the
+-list with node names posessing such a characteristic.
 +You may also use any valid xCAT node range as an argument (see noderange(3)).
  Each I<host> specification may be inter-mixed however always comma
  separated.  Netgroup names are invoked by using the "@" symbol, which acts
  as an intersection operator.  A single netgroup can be designated with a
-@@ -1327,6 +1334,11 @@
+@@ -1328,6 +1325,11 @@
  Take B<pexec> options from this environment variable, which is parsed
  before the command line (and thereby overridden).
  
@@ -59,7 +65,7 @@
  =back
  
  =head1 FILES
-@@ -1371,7 +1383,7 @@
+@@ -1372,7 +1374,7 @@
  
  =head1 SEE ALSO
  

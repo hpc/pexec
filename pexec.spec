@@ -1,25 +1,10 @@
-%define with_none	1
-%define none_release	8
-
-%define with_bproc	%{?_with_bproc:1}	%{!?_with_bproc:0}
-%define bproc_release	8
-
-%define with_panfs	%{?_with_panfs:1}	%{!?_with_panfs:0}
-%define panfs_release	8
-
-%define with_slurm	%{?_with_slurm:1}	%{!?_with_slurm:0}
-%define slurm_release	8
-
-%define with_warewulf	%{?_with_warewulf:1}	%{!?_with_warewulf:0}
-%define warewulf_release 8
-
+# rpmbuild --with xcat
 %if %{?_with_xcat:1} %{!?_with_xcat:0}
 %define with_xcat	1
 %define _xcatroot	/opt/xcat
 %else
 %define with_xcat	0
 %endif
-%define xcat_release	8
 
 # rpmbuild --with xcatroot=<prefix>
 %if %{?_with_xcatroot:1} %{!?_with_xcatroot:0}
@@ -27,33 +12,20 @@
 %define	_xcatroot	%(%{__perl} -e '$_ = "%{_with_xcatroot}"; if (s/^.*--with-xcatroot=(\\S+)$/$1/) { print;}')
 %endif
 
-%if %{with_panfs}
-%define	__arch_install_post	%nil
-%define __os_install_post	%nil
-%define __check_files		%nil
-%endif
-
 Summary: Execute a command on a set of hosts
 Name: pexec
 Version: 1.4
-Release: %{none_release}
+Release: 13%{?dist}
 Group: Applications/System
-Source0: %{name}-%{version}.tgz
-Source1: bpcp.patch
-Source2: +COMMENT
-Source3: +DESC
-Source4: +MTREE_DIRS
+Source: %{name}-%{version}.tgz
 Patch0: pexec-xcat.patch
-Patch1: pexec-bproc.patch
-Patch2: pexec-panfs.patch
-Patch3: pexec-slurm.patch
-Patch4: pexec-warewulf.patch
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 License: Modified BSD
 Requires: perl
 BuildArch: noarch
 Packager: dwg@lanl.gov
-Conflicts: xcat-pexec xCAT-pexec pexec-bproc pexec-slurm pexec-warewulf
+Conflicts: xcat-pexec xCAT-pexec pexec-bproc pexec-warewulf
+Obsoletes: pexec-slurm
 Prefix: %{_bindir}
 Prefix: %{_mandir}
 
@@ -64,10 +36,8 @@ list are substituted in its stead.  Output of cmd on each machine is
 printed to the execution host's STDOUT.
 
 %if %{with_xcat}
-%define with_none 0
 %package -n xCAT-pexec
 Summary: Execute a command on a set of hosts
-Release: %{xcat_release}
 Group: Applications/System
 Requires: %{_xcatroot}/bin/nodels
 Provides: pexec-xCAT = %{version}-%{release}
@@ -81,149 +51,13 @@ list are substituted in its stead.  Output of cmd on each machine is
 printed to the execution host's STDOUT.
 %endif
 
-%if %{with_bproc}
-%define with_none 0
-%package -n pexec-bproc
-Summary: Execute a command on a set of hosts
-Release: %{bproc_release}
-Group: Applications/System
-Requires: /usr/bin/bpstat
-Conflicts: pexec >= 1.3 pexec-slurm pexec-warewulf xcat-pexec xCAT-pexec
-Obsoletes: pexec < 1.3
-
-%description -n pexec-bproc
-pexec builds a machine list from command-line arguments on which cmd is
-to be run.  If the string %host% is part of cmd, names from the machine
-list are substituted in its stead.  Output of cmd on each machine is
-printed to the execution host's STDOUT.
-%endif
-
-%if %{with_panfs}
-%define with_none 0
-%package -n pexec-panfs
-Release: %{panfs_release}
-Summary: Execute a command on a set of hosts
-Group: Applications/System
-Conflicts: pexec >= 1.3 pexec-slurm pexec-warewulf pexec-bproc xcat-pexec xCAT-pexec
-Obsoletes: pexec < 1.3
-
-%description -n pexec-panfs
-pexec builds a machine list from command-line arguments on which cmd is
-to be run.  If the string %host% is part of cmd, names from the machine
-list are substituted in its stead.  Output of cmd on each machine is
-printed to the execution host's STDOUT.
-%endif
-
-%if %{with_slurm}
-%define with_none 0
-%package -n pexec-slurm
-Summary: Execute a command on a set of hosts
-Release: %{slurm_release}
-Group: Applications/System
-Requires: perl(Slurm)
-Conflicts: pexec >= 1.3 pexec-warewulf pexec-bproc xcat-pexec xCAT-pexec
-Obsoletes: pexec < 1.3
-
-%description -n pexec-slurm
-pexec builds a machine list from command-line arguments on which cmd is
-to be run.  If the string %host% is part of cmd, names from the machine
-list are substituted in its stead.  Output of cmd on each machine is
-printed to the execution host's STDOUT.
-%endif
-
-%if %{with_warewulf}
-%define with_none 0
-%package -n pexec-warewulf
-Summary: Execute a command on a set of hosts
-Release: %{warewulf_release}
-Group: Applications/System
-Requires: warewulf-tools
-Conflicts: pexec >= 1.3 pexec-slurm pexec-bproc xcat-pexec xCAT-pexec
-Obsoletes: pexec < 1.3
-
-%description -n pexec-warewulf
-pexec builds a machine list from command-line arguments on which cmd is
-to be run.  If the string %host% is part of cmd, names from the machine
-list are substituted in its stead.  Output of cmd on each machine is
-printed to the execution host's STDOUT.
-%endif
-
 %prep
-
-# sanity checks
-%if %{with_bproc}
-%if %{with_panfs}
-echo "Cannot build --with panfs; bproc build is enabled"
-exit 1
-%endif
-%if %{with_slurm}
-echo "Cannot build --with slurm; bproc build is enabled"
-exit 1
-%endif
-%if %{with_warewulf}
-echo "Cannot build --with warewulf; bproc build is enabled"
-exit 1
-%endif
-%if %{with_xcat}
-echo "Cannot build --with xcat; bproc build is enabled"
-exit 1
-%endif
-%endif
-
-%if %{with_warewulf}
-%if %{with_panfs}
-echo "Cannot build --with panfs; warewulf build is enabled"
-exit 1
-%endif
-%if %{with_slurm}
-echo "Cannot build --with slurm; warewulf build is enabled"
-exit 1
-%endif
-%if %{with_xcat}
-echo "Cannot build --with xcat; warewulf build is enabled"
-exit 1
-%endif
-%endif
-
-%if %{with_slurm}
-%if %{with_panfs}
-echo "Cannot build --with panfs; slurm build is enabled"
-exit 1
-%endif
-%if %{with_xcat}
-echo "Cannot build --with xcat; slurm build is enabled"
-exit 1
-%endif
-%endif
-
-%if %{with_xcat}
-%if %{with_panfs}
-echo "Cannot build --with panfs; xcat build is enabled"
-exit 1
-%endif
-%endif
 
 %setup -q
 
 %if %{with_xcat}
 %{__perl} -pi -e "s,'/opt/xcat','%{_xcatroot}',g" %PATCH0
 %patch0 -p0 -b .patch0
-%endif
-
-%if %{with_bproc}
-%patch1 -p0 -b .patch1
-%endif
-
-%if %{with_panfs}
-%patch2 -p0 -b .patch2
-%endif
-
-%if %{with_slurm}
-%patch3 -p0 -b .patch3
-%endif
-
-%if %{with_warewulf}
-%patch4 -p0 -b .patch4
 %endif
 
 %install
@@ -238,60 +72,7 @@ umask 022
 %{__mkdir_p} $RPM_BUILD_ROOT%{_xcatroot}/man/man1
 pod2man %{name}.pl $RPM_BUILD_ROOT%{_xcatroot}/man/man1/pexec.1
 
-%endif
-
-%if %{with_panfs}
-
-%if "%(id -nu)" != "root"
-echo "Cannot build/install --with panfs without root privilege, sorry"
-exit 1
-%endif
-
-%{__mkdir_p} ${RPM_BUILD_ROOT}/bin
-%{__install} -o root -g root -m 0555 %{name}.pl ${RPM_BUILD_ROOT}/bin/%{name}
-
-%{__mkdir_p} ${RPM_BUILD_ROOT}/share/man/man1
-pod2man %{name}.pl ${RPM_BUILD_ROOT}/share/man/man1/%{name}.1
-%{__gzip} ${RPM_BUILD_ROOT}/share/man/man1/%{name}.1
-%{__chown} root:root ${RPM_BUILD_ROOT}/share/man/man1/%{name}.1.gz
-%{__chmod} 0444 ${RPM_BUILD_ROOT}/share/man/man1/%{name}.1.gz
-
-%{__install} -o root -g root -m 0644 %SOURCE2 ${RPM_BUILD_ROOT}
-%{__install} -o root -g root -m 0644 %SOURCE3 ${RPM_BUILD_ROOT}
-%{__install} -o root -g root -m 0644 %SOURCE4 ${RPM_BUILD_ROOT}
-
-SUM1=$(md5sum ${RPM_BUILD_ROOT}/bin/%{name} | %{__awk} '{print $1}')
-SUM2=$(md5sum ${RPM_BUILD_ROOT}/share/man/man1/%{name}.1.gz | %{__awk} '{print $1}')
-
-%{__cat} << EOT > "${RPM_BUILD_ROOT}/+CONTENTS"
-@comment PKG_FORMAT_REVISION:1.1
-@name %{name}-%{version}-%{release}
-@cwd /usr
-@comment ORIGIN:parallel/pexec
-bin/pexec
-@comment MD5:$SUM1
-share/man/man1/pexec.1.gz
-@comment MD5:$SUM2
-@cwd .
-@ignore
-+COMMENT
-@ignore
-+DESC
-@ignore
-+MTREE_DIRS
-@mtree +MTREE_DIRS
-EOT
-
-%{__chown} root:root ${RPM_BUILD_ROOT}/+CONTENTS
-
-%{__mkdir_p} %{_rpmdir}/noarch
-%{__tar} czf %{_rpmdir}/noarch/%{name}-%{version}-%{release}.pkg.tgz -C $RPM_BUILD_ROOT \
-+CONTENTS +COMMENT +DESC +MTREE_DIRS bin/pexec share/man/man1/pexec.1.gz && \
-echo 'Wrote: %{_rpmdir}/noarch/%{name}-%{version}-%{release}.pkg.tgz'
-
-%endif
-
-%if !%{with_xcat} && !%{with_panfs}
+%else
 
 %{__mkdir_p} $RPM_BUILD_ROOT%{_bindir}
 %{__install} -m 0755 %{name}.pl $RPM_BUILD_ROOT%{_bindir}/%{name}
@@ -301,54 +82,53 @@ pod2man %{name}.pl $RPM_BUILD_ROOT%{_mandir}/man1/%{name}.1
 
 %endif
 
-%if %{with_bproc}
-%{__mkdir_p} $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}
-%{__install} -m 0644 %SOURCE1 $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}
-%endif
-
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
 
 
 %if %{with_xcat}
+
 %files -n xCAT-pexec
 %defattr(-,root,root,0755)
+%doc COPYING
 %attr(0755,root,root) %{_xcatroot}/bin/%{name}
 %attr(0644,root,root) %{_xcatroot}/man/man1/%{name}.1
-%endif
 
-%if %{with_bproc}
-%files -n pexec-bproc
-%defattr(-,root,root,0755)
-%doc %{_docdir}/%{name}-%{version}
-%attr(0755,root,root) %{_bindir}/%{name}
-%attr(0644,root,root) %{_mandir}/man1/%{name}.1.gz
-%endif
+%else
 
-%if %{with_slurm}
-%files -n pexec-slurm
-%defattr(-,root,root,0755)
-%attr(0755,root,root) %{_bindir}/%{name}
-%attr(0644,root,root) %{_mandir}/man1/%{name}.1.gz
-%endif
-
-%if %{with_warewulf}
-%files -n pexec-warewulf
-%defattr(-,root,root,0755)
-%attr(0755,root,root) %{_bindir}/%{name}
-%attr(0644,root,root) %{_mandir}/man1/%{name}.1.gz
-%endif
-
-%if %{with_none}
 %files
 %defattr(-,root,root,0755)
-%defattr(-,root,root,0755)
+%doc COPYING
 %attr(0755,root,root) %{_bindir}/%{name}
 %attr(0644,root,root) %{_mandir}/man1/%{name}.1.gz
 %endif
 
 
 %changelog
+* Tue Feb 11 2014 Daryl W. Grunau <dwg@lanl.gov> 1.4-13
+- Exit EINTR if interrupted; ETIMEDOUT if timed out.
+- BUGFIX: verbose output missing on tree-root processes.
+- ParseRange() function to better handle host ranges.
+
+* Fri Jan 10 2014 Daryl W. Grunau <dwg@lanl.gov> 1.4-12
+- BUGFIX: host range needs to support multiple NRs, comma-separated when
+  handling p[NR]s cases, for prefix 'p', node range 'NR' and suffix 's'.
+
+* Fri Jan 10 2014 Daryl W. Grunau <dwg@lanl.gov> 1.4-11
+- BUGFIX: host range suffix is not permitted to contain yet another range when
+  handling p[NR]s cases, for prefix 'p', node range 'NR' and suffix 's'.
+
+* Thu Jan 09 2014 Daryl W. Grunau <dwg@lanl.gov> 1.4-10
+- 'local' becomes 'our' where appropriate (and lose perl 5.003 compatibility).
+- Documentation fixes.
+
+* Thu Jan 09 2014 Daryl W. Grunau <dwg@lanl.gov> 1.4-9
+- BUGFIX: handle cases where -m (or -s) was specified with no argument(s).
+- BUGFIX: host range suffix should match greedily when handling p[NR]s
+  cases, for prefix 'p', node range 'NR' and suffix 's'.
+- Merge subroutines spawn and tspawn.
+- Native slurm support; obsolete pexec-slurm.  Document this.
+
 * Mon Mar 26 2012 Daryl W. Grunau <dwg@lanl.gov> 1.4-8
 - Move 'unique array element' guarantee into IntersectNetgroups() from
   CacheNetgroups().
