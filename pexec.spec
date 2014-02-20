@@ -14,11 +14,10 @@
 
 Summary: Execute a command on a set of hosts
 Name: pexec
-Version: 1.4
-Release: 13%{?dist}
+Version: 1.5
+Release: 1%{?dist}
 Group: Applications/System
 Source: %{name}-%{version}.tgz
-Patch0: pexec-xcat.patch
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 License: Modified BSD
 Requires: perl
@@ -52,12 +51,14 @@ printed to the execution host's STDOUT.
 %endif
 
 %prep
+%define _barelease	%(%{__perl} -e '$_ = "%{release}"; s/\\Q%{?dist}\\E$//; print')
+%setup -q -n %{name}-%{version}-%{_barelease}
 
-%setup -q
+%build
+umask 022
 
 %if %{with_xcat}
-%{__perl} -pi -e "s,'/opt/xcat','%{_xcatroot}',g" %PATCH0
-%patch0 -p0 -b .patch0
+%{__make} XCATROOT=%{_xcatroot} xcat
 %endif
 
 %install
@@ -66,19 +67,12 @@ umask 022
 
 %if %{with_xcat}
 
-%{__mkdir_p} $RPM_BUILD_ROOT%{_xcatroot}/bin
-%{__install} -m 0755 %{name}.pl $RPM_BUILD_ROOT%{_xcatroot}/bin/%{name}
-
-%{__mkdir_p} $RPM_BUILD_ROOT%{_xcatroot}/man/man1
-pod2man %{name}.pl $RPM_BUILD_ROOT%{_xcatroot}/man/man1/pexec.1
+export XCATROOT=%{buildroot}%{_xcatroot}
+%{makeinstall}-xcat
 
 %else
 
-%{__mkdir_p} $RPM_BUILD_ROOT%{_bindir}
-%{__install} -m 0755 %{name}.pl $RPM_BUILD_ROOT%{_bindir}/%{name}
-
-%{__mkdir_p} $RPM_BUILD_ROOT%{_mandir}/man1
-pod2man %{name}.pl $RPM_BUILD_ROOT%{_mandir}/man1/%{name}.1
+%{makeinstall}
 
 %endif
 
