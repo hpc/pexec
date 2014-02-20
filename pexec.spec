@@ -1,3 +1,6 @@
+%define _release	3%{?dist}
+%define _barelease	%(%{__perl} -e '$_ = "%{_release}"; s/\\Q%{?dist}\\E$//; print')
+
 # rpmbuild --with xcat
 %if %{?_with_xcat:1} %{!?_with_xcat:0}
 %define with_xcat	1
@@ -15,9 +18,9 @@
 Summary: Execute a command on a set of hosts
 Name: pexec
 Version: 1.5
-Release: 2%{?dist}
+Release: %{_release}
 Group: Applications/System
-Source: %{name}-%{version}.tar.gz
+Source: %{name}-%{version}-%{_barelease}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 License: Modified BSD
 Requires: perl
@@ -51,7 +54,6 @@ printed to the execution host's STDOUT.
 %endif
 
 %prep
-%define _barelease	%(%{__perl} -e '$_ = "%{release}"; s/\\Q%{?dist}\\E$//; print')
 %setup -q -n %{name}-%{version}-%{_barelease}
 
 %build
