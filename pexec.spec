@@ -15,9 +15,9 @@
 Summary: Execute a command on a set of hosts
 Name: pexec
 Version: 1.5
-Release: 1%{?dist}
+Release: 2%{?dist}
 Group: Applications/System
-Source: %{name}-%{version}.tgz
+Source: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 License: Modified BSD
 Requires: perl
