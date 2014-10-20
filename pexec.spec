@@ -1,4 +1,4 @@
-%define _release	3%{?dist}
+%define _release	4%{?dist}
 %define _barelease	%(%{__perl} -e '$_ = "%{_release}"; s/\\Q%{?dist}\\E$//; print')
 
 # rpmbuild --with xcat
@@ -101,6 +101,9 @@ export XCATROOT=%{buildroot}%{_xcatroot}
 
 
 %changelog
+* Wed Oct 15 2014 Daryl W. Grunau <dwg@lanl.gov> 1.4-14
+- BUGFIX: --output was not being honored!
+
 * Tue Feb 11 2014 Daryl W. Grunau <dwg@lanl.gov> 1.4-13
 - Exit EINTR if interrupted; ETIMEDOUT if timed out.
 - BUGFIX: verbose output missing on tree-root processes.

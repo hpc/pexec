@@ -466,9 +466,13 @@ sub spawn ($$) {
    my ($machine,$sender) = @_;
 
    my $pid;
-   my @Cmd = ((defined $sender) && (scalar @ARGTree) ? @ARGTree : @ARGV);
-
-   grep($_ =~ s/\%$strand\%/$sender/ig,@Cmd) if (defined $sender);
+   my @Cmd = ();
+   if (defined $sender) {		# a tree process
+      @Cmd = (scalar @ARGTree ? @ARGTree : @ARGV);
+      grep($_ =~ s/\%$strand\%/$sender/ig,@Cmd);
+   } else {				# a root process
+      @Cmd = @ARGV;
+   }
    grep($_ =~ s/\%host\%/$machine/ig,@Cmd);
    (my $outfile = $opt_output) =~ s/\%host\%/$machine/ig;
    (my $ping_host = $opt_ping_host) =~ s/\%host\%/$machine/ig if (defined($opt_ping));
@@ -566,6 +570,10 @@ sub spawn ($$) {
 		  unless ($server =~ /^(\d{1,3}\.){3,3}\d{1,3}$/);
 	       @Output = map { "$server->$host: $_" } @Output;
 	    }
+	    if ($opt_v) {
+	       unshift(@Output, "$prompt$cmd\n");
+	       push(@Output, "\n");
+	    }
 	 } else {			# a root process
 	    if ($opt_p) {			# prefix
 	       @Output = defined $opt_rcpy
@@ -573,23 +581,11 @@ sub spawn ($$) {
 		  : map { "$host: $_" } @Output;
 	    }
 	 }
-	 if ($opt_v) {
-	    unshift(@Output, "$prompt$cmd\n");
-	    push(@Output, "\n");
-	 }
-	 sysopen(TTY, $tty, O_RDONLY) ||
-	    die "$prog: unable to open '$tty': $!\n";
-	 die "$prog: flock failure: $!\n" unless flock(TTY, LOCK_EX);
-	 print STDOUT (@Output);
-	 close STDOUT;
-	 flock(TTY, LOCK_UN);
-	 close(TTY);
-      } elsif ($opt_v) {			# no output produced by cmd
 	 sysopen(TTY, $tty, O_RDONLY) ||
 	    die "$prog: unable to open '$tty': $!\n";
 	 die "$prog: flock failure: $!\n" unless flock(TTY, LOCK_EX);
 	 if (defined $sender) {		# a tree process
-	    print STDOUT "$prompt$cmd\n";
+	    print STDOUT (@Output);
 	    close STDOUT;
 	 } else {			# a root process
 	    open (OUTPUT, ">>$outfile") || die "$prog: unable to open '$outfile': $!\n";
@@ -598,6 +594,14 @@ sub spawn ($$) {
 	    print STDOUT "\n" if ($opt_v);
 	    close OUTPUT;
 	 }
+	 flock(TTY, LOCK_UN);
+	 close(TTY);
+      } elsif ($opt_v) {			# no output produced by cmd
+	 sysopen(TTY, $tty, O_RDONLY) ||
+	    die "$prog: unable to open '$tty': $!\n";
+	 die "$prog: flock failure: $!\n" unless flock(TTY, LOCK_EX);
+	 print STDOUT "$prompt$cmd\n";
+	 close STDOUT;
 	 flock(TTY, LOCK_UN);
 	 close(TTY);
       }
